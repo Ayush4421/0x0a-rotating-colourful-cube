@@ -1,258 +1,248 @@
-// This variable is only for namespacing variables
-// vulnerable to be repeated.
-const drawTrianglesOnZequals0Config = {
-  // The location of this script; so that the relative
-  // URL's may be resolved from here.
-  thisScript: document.currentScript.src,
+class RefTriangles2 {
+  #gl = null
+  #inputs = null
 
-  // Vertex Shader Text
-  // --------------------------------------------------
-  vShaderUrl : './shaders/vertex.glsl',
+  vao
+  buffers
+  shader
+  N
 
-  // Fragment Shader Text
-  // --------------------------------------------------
-  fShaderUrl: './shaders/fragment.glsl',
+  static vShaderUrl = './shaders/vertex.glsl'
+  static fShaderUrl = './shaders/fragment.glsl'
+  static scriptName = document.currentScript.src
+  static vShaderTxt = ''
+  static fShaderTxt = ''
 
-  // Vertex positions
-  // --------------------------------------------------
-  pos: [
-    [0.5,   0.5, 1.0],
-    [0.0,  -0.5, 1.0],
-    [-0.5,  0.5, 1.0],
-  ],
+  constructor (gl, {pos, colors}) {
+    this.#gl = gl
+    
+    if (pos.length !== colors.length) {
+      throw new TypeError({
+        pos: pos.length,
+        required: 'equal',
+        colors: colors.length
+      })
+    }
 
-  // Vertex Colors
-  // --------------------------------------------------
-  colors: [
-    [0.8,0.1,0.05],
-    [0.8,0.1,0.05],
-    [0.8,0.1,0.05],
-  ],
-}
+    // Num elements required to be rendered
+    this.N = pos.length
 
+    // Compile program to memory
+    // --------------------------------------------------
+    this.setupShaders()
 
-// Usage
-// ----------------------------------------------------
-// To setup do:
-// 
-// const {drawFn} = await getReferenceTrianglesDraw (gl)
-//
-// To draw in the render loop, do:
-//
-// drawFn()
-async function getReferenceTrianglesDraw (gl, {pos, colors}) {
-  // Compile program to memory
-  // --------------------------------------------------
-  const {
-    shaderProgram, aPositionLoc, aColorRgbLoc
-  } = await setupTrianglesOnZequals0Shaders(gl)
+    // Copy data to memory 
+    // --------------------------------------------------
+    this.setupBuffers({pos, colors})
 
+    // Setup memory mapping
+    // --------------------------------------------------
+    this.setupVao()
+  }
 
-  // Copy data to memory 
-  // --------------------------------------------------
-  // const vao = gl.createVertexArray();
-  // let {pos, colors} = drawTrianglesOnZequals0Config
-  pos = pos.flat()
-  colors = colors.flat()
-  const N = pos.length
-  const {
-    pos: posVerts, colors: colorVerts,
-  } = setupDataBuffers(gl, {pos, colors})
-  // } = setupDataBuffers(gl, {pos, colors}, vao)
+  setupShaders() {
+    const gl = this.#gl
+    const {vShaderTxt, fShaderTxt} = this.constructor
 
-  console.log({posVerts, colorVerts, pos, colors})
+    console.log("VERTEX_SHADER")
+    console.log(vShaderTxt)
+    console.log("FRAGMENT_SHADER")
+    console.log(fShaderTxt)
 
-  // Setup memory mapping
-  // --------------------------------------------------
-  const {vao} = setupTrianglesOnZequals0VertexArray(
-    gl,
-    {
+    // ----------------------------------------------------
+    // Create Program
+    // ----------------------------------------------------
+    const vShader = compileShader(gl, vShaderTxt, gl.VERTEX_SHADER)
+    const fShader = compileShader(gl, fShaderTxt, gl.FRAGMENT_SHADER)
+    const shaderProgram = linkShaders(
+      gl, vShader, fShader, true
+    )
+
+    // ----------------------------------------------------
+    // Extract Program Pointers
+    // ----------------------------------------------------
+    gl.useProgram(shaderProgram);
+    const aPositionLoc
+      = gl.getAttribLocation(
+        shaderProgram, "aPosition"
+      )
+    , aColorRgbLoc
+      = gl.getAttribLocation(
+        shaderProgram, "aColorRgb"
+      )
+    , uModelViewLoc = gl.getUniformLocation(
       shaderProgram,
-      aPositionLoc,
-      aColorRgbLoc,
-      // vao,
-      posVerts,
-      colorVerts,
+      "uModelView"
+    )
+
+    gl.useProgram(null);
+
+    this.shader = {
+      program: shaderProgram,
+      attributes: {
+        aPosition: aPositionLoc,
+        aColorRgb: aColorRgbLoc,
+      },
+      uniforms: {
+        uModelView: uModelViewLoc,
+      }
     }
-  )
 
+    console.log({shader: this.shader})
+  }
 
-  // return {
-  //   shaderProgram,
-  //   aPositionLoc,
-  //   aColorRgbLoc,
-  //   posVerts,
-  //   colorVerts,
-  //   vao,
-  //   N,
-  // }
+  setupBuffers({pos, colors}) {
+    const gl = this.#gl
 
-  return {
-    drawFn() {
-      gl.useProgram(shaderProgram);
-      gl.bindVertexArray(vao)
-      gl.drawArrays(gl.TRIANGLES, 0, N);
-      gl.bindVertexArray(null)
-      gl.useProgram(null);
+    pos = pos.flat()
+    colors = colors.flat()
+
+    const {pos: posVerts, colors: colorVerts}
+      = setupDataBuffers(gl, {pos, colors})
+
+    this.buffers = {
+      pos: posVerts, colors: colorVerts
     }
+
+    console.log({buffers: this.buffers})
+
+  }
+
+  setupVao() {
+    const gl = this.#gl
+
+    const {
+      program,
+      attributes: {
+        aPosition, aColorRgb
+      }
+    } = this.shader
+
+    const {pos, colors} = this.buffers
+
+    const vao = gl.createVertexArray()
+
+    // ----------------------------------------------------
+    // Bind Program Pointers to Data & Buffers
+    // ----------------------------------------------------
+
+    // Activate the Shader
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+
+    // Attributes
+    // ----------------------------------------------------
+    // Tell gl which buffer we want to use at the moment
+    gl.bindBuffer(gl.ARRAY_BUFFER, pos);
+    // Set which buffer the attribute will pull its data from
+    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+
+    // Tell gl which buffer we want to use at the moment
+    gl.bindBuffer(gl.ARRAY_BUFFER, colors);
+    // Set which buffer the attribute will pull its data from
+    gl.vertexAttribPointer(aColorRgb, 3, gl.FLOAT, false, 0, 0);
+
+    // Enable the attributes in the shader. (Because they
+    // are disabled by default! Probably some code
+    // optimisation)
+    gl.enableVertexAttribArray(aPosition);
+    gl.enableVertexAttribArray(aColorRgb);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
+    // Done setting up the buffer
+    // ----------------------------------------------------
+
+    gl.useProgram(null);
+
+    this.vao = vao
+
+    console.log({vao: this.vao})
+  }
+
+  static async bootstrap() {
+    const Cls = this
+    
+    if (Cls.vShaderUrl instanceof URL === false) {
+      Cls.vShaderUrl = new URL(Cls.vShaderUrl, Cls.scriptName)
+    }
+    if (Cls.fShaderUrl instanceof URL === false) {
+      Cls.fShaderUrl = new URL(Cls.fShaderUrl, Cls.scriptName)
+    }
+
+    console.log({
+      vShaderUrl: Cls.vShaderUrl,
+      fShaderUrl: Cls.fShaderUrl,
+    })
+
+    Cls.vShaderTxt = await cachedLoad(
+      Cls.vShaderUrl, 'text'
+    )
+    Cls.fShaderTxt = await cachedLoad(
+      Cls.fShaderUrl, 'text'
+    )
+  }
+
+  draw(ms, inputs) {
+    // ------------------------------------------------
+    // HANDLE INPUTS
+    // ------------------------------------------------
+    this.#debugInputs(inputs)
+
+    // ------------------------------------------------
+    // HANDLE Cube Rotation based on MS and INPUTS
+    // ------------------------------------------------
+
+    const gl = this.#gl
+    const N = this.N
+    const vao = this.vao
+    gl.useProgram(this.shader.program);
+    gl.bindVertexArray(vao)
+    this.setupUniforms(inputs);
+    gl.drawArrays(gl.TRIANGLES, 0, N);
+    gl.bindVertexArray(null)
+    gl.useProgram(null);
+  }
+
+  #debugInputs(inputs) {
+    if (!deepEqual(inputs, this.#inputs)) {
+      console.log({inputs})
+    }
+    this.#inputs = inputs
+  }
+
+  setupUniforms(inputs) {
+    const gl = this.#gl
+    const {
+      uniforms: { uModelView }
+    } = this.shader
+
+    // Example transformation matrix
+    let transform = mat4.create();
+
+    // Apply transformation based on inputs
+    // Example: translating based on inputs
+    if (inputs.translateX) mat4.translate(transform, transform, [inputs.translateX, 0, 0]);
+    if (inputs.translateY) mat4.translate(transform, transform, [0, inputs.translateY, 0]);
+    if (inputs.translateZ) mat4.translate(transform, transform, [0, 0, inputs.translateZ]);
+
+    if (inputs.rotateX) mat4.rotateX(transform, transform, inputs.rotateX);
+    if (inputs.rotateY) mat4.rotateY(transform, transform, inputs.rotateY);
+    if (inputs.rotateZ) mat4.rotateZ(transform, transform, inputs.rotateZ);
+
+    if (inputs.scaleX) mat4.scale(transform, transform, [inputs.scaleX, 1, 1]);
+    if (inputs.scaleY) mat4.scale(transform, transform, [1, inputs.scaleY, 1]);
+    if (inputs.scaleZ) mat4.scale(transform, transform, [1, 1, inputs.scaleZ]);
+
+    gl.uniformMatrix4fv(uModelView, false, transform);
   }
 }
 
 
-// function drawReferenceTriangles(
-//   gl,
-//   {
-//     shaderProgram,
-//     aPositionLoc,
-//     aColorRgbLoc,
-//     posVerts,
-//     colorVerts,
-//     vao,
-//     N
-//   }
-// ) {
-//   console.log({shaderProgram, vao})
-//   gl.useProgram(shaderProgram);
-//   gl.bindVertexArray(vao)
-//   gl.drawArrays(gl.TRIANGLES, 0, N);
-//   gl.bindVertexArray(null)
-//   gl.useProgram(null);
-// }
-
-
-async function setupTrianglesOnZequals0Shaders(gl) {
-
-  const {vShaderTxt, fShaderTxt}
-	= await getTrianglesOnZequals0Shaders(
-	  drawTrianglesOnZequals0Config
-	)
-
-  console.log("VERTEX_SHADER")
-  console.log(vShaderTxt)
-  console.log("FRAGMENT_SHADER")
-  console.log(fShaderTxt)
-
-  // ----------------------------------------------------
-  // Create Program
-  // ----------------------------------------------------
-  // // For clarity
-  // writeTextToDomSelector(vShaderTxt, '#vShader code')
-  // writeTextToDomSelector(fShaderTxt, '#fShader code')
-  const vShader = compileShader(gl, vShaderTxt, gl.VERTEX_SHADER)
-  const fShader = compileShader(gl, fShaderTxt, gl.FRAGMENT_SHADER)
-  const shaderProgram = linkShaders(
-    gl, vShader, fShader, true
-  )
-
-  // ----------------------------------------------------
-  // Extract Program Pointers
-  // ----------------------------------------------------
-  gl.useProgram(shaderProgram);
-  const aPositionLoc
-	= gl.getAttribLocation(
-	  shaderProgram, "aPosition"
-	)
-  , aColorRgbLoc
-	= gl.getAttribLocation(
-	  shaderProgram, "aColorRgb"
-	)
-
-  // This is just a boilerplate to use for getting
-  // uniforms.
-  // , uPointSizeLoc	= gl.getUniformLocation(
-  //   shaderProgram,
-  //   "uPointSize"
-  // )
-
-  gl.useProgram(null);
-
-  return {
-    shaderProgram, aPositionLoc, aColorRgbLoc
-  }
-}  
-
-async function getTrianglesOnZequals0Shaders(
-  {vShaderUrl, fShaderUrl, thisScript}
-) {
-  if (vShaderUrl instanceof URL === false) {
-    vShaderUrl = new URL(vShaderUrl, thisScript)
-  }
-  if (fShaderUrl instanceof URL === false) {
-    fShaderUrl = new URL(fShaderUrl, thisScript)
-  }
-
-  console.log({vShaderUrl, fShaderUrl})
-
-  const vShaderTxt = await cachedLoad(
-    vShaderUrl, 'text'
-  )
-  const fShaderTxt = await cachedLoad(
-    fShaderUrl, 'text'
-  )
-
-  return {vShaderTxt, fShaderTxt}
+function deepEqual(x, y) {
+  const ok = Object.keys, tx = typeof x, ty = typeof y;
+  return x && y && tx === 'object' && tx === ty ? (
+    ok(x).length === ok(y).length &&
+      ok(x).every(key => deepEqual(x[key]))
+  ) : (x === y);
 }
-
-function setupTrianglesOnZequals0VertexArray(
-  gl,
-  {
-    shaderProgram,
-    aPositionLoc,
-    aColorRgbLoc,
-    // vao,
-    posVerts,
-    colorVerts,
-  }
-) {
-  const vao = gl.createVertexArray();
-
-  // ----------------------------------------------------
-  // Bind Program Pointers to Data & Buffers
-  // ----------------------------------------------------
-
-  //Activate the Shader
-  gl.useProgram(shaderProgram);
-  gl.bindVertexArray(vao);
-
-  // Uniforms
-  // ----------------------------------------------------
-  // Store data to the shader's uniform variable
-  // uPointSize
-  // gl.uniform1f(uPointSizeLoc, pointSize);
-
-  // r = fgColor.r
-  // g = fgColor.g
-  // b = fgColor.b
-  // a = fgColor.a
-  // console.log({fgColor: [r,g,b,a]})
-  // gl.uniform3fv(uFgColorRgbLoc, new Float32Array([r,g,b]));
-
-
-  // Attributes
-  // ----------------------------------------------------
-  // Tell gl which buffer we want to use at the moment
-  gl.bindBuffer(gl.ARRAY_BUFFER, posVerts);
-  // Set which buffer the attribute will pull its data from
-  gl.vertexAttribPointer(aPositionLoc,3,gl.FLOAT,false,0,0);
-
-  // Tell gl which buffer we want to use at the moment
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorVerts);
-  // Set which buffer the attribute will pull its data from
-  gl.vertexAttribPointer(aColorRgbLoc,3,gl.FLOAT,false,0,0);
-
-  // Enable the attributes in the shader. (Because they
-  // are disabled by default! Probably some code
-  // optimisation)
-  gl.enableVertexAttribArray(aPositionLoc);
-  gl.enableVertexAttribArray(aColorRgbLoc);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, null);
-  gl.bindVertexArray(null);
-  // Done setting up the buffer
-  // ----------------------------------------------------
-
-  gl.useProgram(shaderProgram);
-
-  return {vao}
-}
-

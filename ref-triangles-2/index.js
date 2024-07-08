@@ -18,9 +18,9 @@ class RefTriangles2 {
     
     if (pos.length !== colors.length) {
       throw new TypeError({
-	pos: pos.length,
-	required:'equal',
-	colors: colors.length
+        pos: pos.length,
+        required: 'equal',
+        colors: colors.length
       })
     }
 
@@ -52,9 +52,6 @@ class RefTriangles2 {
     // ----------------------------------------------------
     // Create Program
     // ----------------------------------------------------
-    // // For clarity
-    // writeTextToDomSelector(vShaderTxt, '#vShader code')
-    // writeTextToDomSelector(fShaderTxt, '#fShader code')
     const vShader = compileShader(gl, vShaderTxt, gl.VERTEX_SHADER)
     const fShader = compileShader(gl, fShaderTxt, gl.FRAGMENT_SHADER)
     const shaderProgram = linkShaders(
@@ -66,17 +63,14 @@ class RefTriangles2 {
     // ----------------------------------------------------
     gl.useProgram(shaderProgram);
     const aPositionLoc
-	  = gl.getAttribLocation(
-	    shaderProgram, "aPosition"
-	  )
+      = gl.getAttribLocation(
+        shaderProgram, "aPosition"
+      )
     , aColorRgbLoc
-	  = gl.getAttribLocation(
-	    shaderProgram, "aColorRgb"
-	  )
-
-    // This is just a boilerplate to use for getting
-    // uniforms.
-    , uPointSizeLoc	= gl.getUniformLocation(
+      = gl.getAttribLocation(
+        shaderProgram, "aColorRgb"
+      )
+    , uModelViewLoc = gl.getUniformLocation(
       shaderProgram,
       "uModelView"
     )
@@ -86,16 +80,15 @@ class RefTriangles2 {
     this.shader = {
       program: shaderProgram,
       attributes: {
-	aPosition: aPositionLoc,
-	aColorRgb: aColorRgbLoc,
+        aPosition: aPositionLoc,
+        aColorRgb: aColorRgbLoc,
       },
       uniforms: {
-	// uPointSize: uPointSizeLoc,
-  uModelView :uPointSizeLoc,
+        uModelView: uModelViewLoc,
       }
     }
 
-    console.log({shader:this.shader})
+    console.log({shader: this.shader})
   }
 
   setupBuffers({pos, colors}) {
@@ -105,13 +98,13 @@ class RefTriangles2 {
     colors = colors.flat()
 
     const {pos: posVerts, colors: colorVerts}
-	  = setupDataBuffers(gl, {pos, colors})
+      = setupDataBuffers(gl, {pos, colors})
 
     this.buffers = {
       pos: posVerts, colors: colorVerts
     }
 
-    console.log({buffers:this.buffers})
+    console.log({buffers: this.buffers})
 
   }
 
@@ -121,7 +114,7 @@ class RefTriangles2 {
     const {
       program,
       attributes: {
-	aPosition, aColorRgb
+        aPosition, aColorRgb
       }
     } = this.shader
 
@@ -133,35 +126,21 @@ class RefTriangles2 {
     // Bind Program Pointers to Data & Buffers
     // ----------------------------------------------------
 
-    //Activate the Shader
+    // Activate the Shader
     gl.useProgram(program);
     gl.bindVertexArray(vao);
-
-    // Uniforms
-    // ----------------------------------------------------
-    // Store data to the shader's uniform variable
-    // uPointSize
-    // gl.uniform1f(uPointSizeLoc, pointSize);
-
-    // r = fgColor.r
-    // g = fgColor.g
-    // b = fgColor.b
-    // a = fgColor.a
-    // console.log({fgColor: [r,g,b,a]})
-    // gl.uniform3fv(uFgColorRgbLoc, new Float32Array([r,g,b]));
-
 
     // Attributes
     // ----------------------------------------------------
     // Tell gl which buffer we want to use at the moment
     gl.bindBuffer(gl.ARRAY_BUFFER, pos);
     // Set which buffer the attribute will pull its data from
-    gl.vertexAttribPointer(aPosition,3,gl.FLOAT,false,0,0);
+    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
 
     // Tell gl which buffer we want to use at the moment
     gl.bindBuffer(gl.ARRAY_BUFFER, colors);
     // Set which buffer the attribute will pull its data from
-    gl.vertexAttribPointer(aColorRgb,3,gl.FLOAT,false,0,0);
+    gl.vertexAttribPointer(aColorRgb, 3, gl.FLOAT, false, 0, 0);
 
     // Enable the attributes in the shader. (Because they
     // are disabled by default! Probably some code
@@ -174,12 +153,11 @@ class RefTriangles2 {
     // Done setting up the buffer
     // ----------------------------------------------------
 
-    // gl.bindVertexArray(null);
     gl.useProgram(null);
 
     this.vao = vao
 
-    console.log({vao:this.vao})
+    console.log({vao: this.vao})
   }
 
   static async bootstrap() {
@@ -207,16 +185,12 @@ class RefTriangles2 {
 
   draw(ms, inputs) {
     // ------------------------------------------------
-    // FIXME: HANDLE INPUTS
-    //
-    // Uncomment the debugInputs to understand the
-    // inputs format
+    // HANDLE INPUTS
     // ------------------------------------------------
     this.#debugInputs(inputs)
 
     // ------------------------------------------------
-    // FIXME: HANDLE Cube Rotation based on MS and
-    // INPUTS
+    // HANDLE Cube Rotation based on MS and INPUTS
     // ------------------------------------------------
 
     const gl = this.#gl
@@ -224,35 +198,44 @@ class RefTriangles2 {
     const vao = this.vao
     gl.useProgram(this.shader.program);
     gl.bindVertexArray(vao)
-    this.setupUniforms();
+    this.setupUniforms(inputs);
     gl.drawArrays(gl.TRIANGLES, 0, N);
     gl.bindVertexArray(null)
     gl.useProgram(null);
   }
 
-  #debugInputs({inputs}) {
+  #debugInputs(inputs) {
     if (!deepEqual(inputs, this.#inputs)) {
       console.log({inputs})
     }
     this.#inputs = inputs
   }
-  setupUniforms()
-{
-  const gl=this.#gl
-  const{
-    uniforms:{
-      uModelView
-      },
-    }=this.shader
-    
-   let transform = [1,0,0,0.5,
-                 0,1,0,0.5,
-                 0,0,1,0,
-                 0,0,0,1]
 
-gl.uniformMatrix4fv(uModelView,true,transform);
+  setupUniforms(inputs) {
+    const gl = this.#gl
+    const {
+      uniforms: { uModelView }
+    } = this.shader
+
+    // Example transformation matrix
+    let transform = mat4.create();
+
+    // Apply transformation based on inputs
+    // Example: translating based on inputs
+    if (inputs.translateX) mat4.translate(transform, transform, [inputs.translateX, 0, 0]);
+    if (inputs.translateY) mat4.translate(transform, transform, [0, inputs.translateY, 0]);
+    if (inputs.translateZ) mat4.translate(transform, transform, [0, 0, inputs.translateZ]);
+
+    if (inputs.rotateX) mat4.rotateX(transform, transform, inputs.rotateX);
+    if (inputs.rotateY) mat4.rotateY(transform, transform, inputs.rotateY);
+    if (inputs.rotateZ) mat4.rotateZ(transform, transform, inputs.rotateZ);
+
+    if (inputs.scaleX) mat4.scale(transform, transform, [inputs.scaleX, 1, 1]);
+    if (inputs.scaleY) mat4.scale(transform, transform, [1, inputs.scaleY, 1]);
+    if (inputs.scaleZ) mat4.scale(transform, transform, [1, 1, inputs.scaleZ]);
+
+    gl.uniformMatrix4fv(uModelView, false, transform);
   }
-  
 }
 
 /**
@@ -265,8 +248,6 @@ function deepEqual(x, y) {
   const ok = Object.keys, tx = typeof x, ty = typeof y;
   return x && y && tx === 'object' && tx === ty ? (
     ok(x).length === ok(y).length &&
-      ok(x).every(key => deepEqual(x[key], y[key]))
+      ok(x).every(key => deepEqual(x[key]))
   ) : (x === y);
 }
-
-

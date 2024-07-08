@@ -53,6 +53,8 @@ class Experiment {
     for (const program of this.#programs) {
       program.draw(ms, inputs);
     }
+
+    requestAnimationFrame(this.loop.bind(this));
   }
 
   static generateData() {

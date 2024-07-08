@@ -1,4 +1,4 @@
-# version 300 es
+#version 300 es
 
 precision mediump float;
 
@@ -9,7 +9,6 @@ in vec3 aColorRgb;
 // uniform vec3 uFgColorRgb;
 uniform mat4 uModelView;
 out vec3 fColorRgb;
-
 
 void main(void){
   // gl_PointSize = uPointSize;
