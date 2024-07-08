@@ -250,3 +250,15 @@ function deepEqual(x, y) {
       ok(x).every(key => deepEqual(x[key], y[key]))
   ) : (x === y);
 }
+
+setupUniforms()
+{
+  const gl=this.#gl
+  const{
+    uniforms:{
+      uModelView
+      },
+    }=this.shader
+    
+    gl.uniform1(uModelView,this.uModelView);
+  }
