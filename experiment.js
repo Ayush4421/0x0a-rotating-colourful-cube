@@ -1,7 +1,7 @@
 class Experiment {
   // Candidate Details
-  static rollNo = '10983743';
-  static name = 'The Tutor';
+  static rollNo = '102153019';
+  static name = 'Ayush Garg';
 
   #gl;
   #programs = [];

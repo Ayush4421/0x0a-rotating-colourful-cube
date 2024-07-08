@@ -76,10 +76,10 @@ class RefTriangles2 {
 
     // This is just a boilerplate to use for getting
     // uniforms.
-    // , uPointSizeLoc	= gl.getUniformLocation(
-    //   shaderProgram,
-    //   "uPointSize"
-    // )
+    , uPointSizeLoc	= gl.getUniformLocation(
+      shaderProgram,
+      "uModelView"
+    )
 
     gl.useProgram(null);
 
@@ -91,6 +91,7 @@ class RefTriangles2 {
       },
       uniforms: {
 	// uPointSize: uPointSizeLoc,
+  uModelView :uPointSizeLoc,
       }
     }
 
@@ -223,12 +224,13 @@ class RefTriangles2 {
     const vao = this.vao
     gl.useProgram(this.shader.program);
     gl.bindVertexArray(vao)
+    this.setupUniforms();
     gl.drawArrays(gl.TRIANGLES, 0, N);
     gl.bindVertexArray(null)
     gl.useProgram(null);
   }
 
-  #debugInputs(inputs) {
+  #debugInputs({inputs}) {
     if (!deepEqual(inputs, this.#inputs)) {
       console.log({inputs})
     }
@@ -243,7 +245,12 @@ class RefTriangles2 {
       },
     }=this.shader
     
-    gl.uniform1(uModelView,this.uModelView);
+   let transform = [1,0,0,0.5,
+                 0,1,0,0.5,
+                 0,0,1,0,
+                 0,0,0,1]
+
+gl.uniformMatrix4fv(uModelView,true,transform);
   }
   
 }
