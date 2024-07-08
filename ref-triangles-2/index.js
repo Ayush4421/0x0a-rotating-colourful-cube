@@ -234,6 +234,17 @@ class RefTriangles2 {
     }
     this.#inputs = inputs
   }
+  setupUniforms()
+{
+  const gl=this.#gl
+  const{
+    uniforms:{
+      uModelView
+      },
+    }=this.shader
+    
+    gl.uniform1(uModelView,this.uModelView);
+  }
   
 }
 
@@ -251,14 +262,4 @@ function deepEqual(x, y) {
   ) : (x === y);
 }
 
-setupUniforms()
-{
-  const gl=this.#gl
-  const{
-    uniforms:{
-      uModelView
-      },
-    }=this.shader
-    
-    gl.uniform1(uModelView,this.uModelView);
-  }
+
