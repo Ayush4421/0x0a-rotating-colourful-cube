@@ -13,6 +13,7 @@ class RefTriangles2 {
   static vShaderTxt = ''
   static fShaderTxt = ''
 
+  
   constructor (gl, {pos, colors}) {
     this.#gl = gl
     
@@ -187,7 +188,7 @@ class RefTriangles2 {
     // ------------------------------------------------
     // HANDLE INPUTS
     // ------------------------------------------------
-    this.#debugInputs(inputs)
+    this.#debugInputs({inputs})
 
     // ------------------------------------------------
     // HANDLE Cube Rotation based on MS and INPUTS
@@ -198,7 +199,7 @@ class RefTriangles2 {
     const vao = this.vao
     gl.useProgram(this.shader.program);
     gl.bindVertexArray(vao)
-    this.setupUniforms(inputs);
+    this.setupUniforms({inputs});
     gl.drawArrays(gl.TRIANGLES, 0, N);
     gl.bindVertexArray(null)
     gl.useProgram(null);
